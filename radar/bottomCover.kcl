@@ -1,0 +1,107 @@
+// Bottom cover and ballast tray
+// One printed part with underside fasteners, rubber-foot seats and an open ballast cavity.
+@settings(defaultLengthUnit = mm, kclVersion = 3.0)
+
+import block, cylinder from "features.kcl"
+import boxWidth, boxDepth, boxWall, coverThickness, postX, postY, footPadX, footPadY, holeAllowance from "dimensions.kcl"
+
+coverBlank = block(
+  width = boxWidth,
+  height = boxDepth,
+  depth = coverThickness,
+  cornerRadius = 6mm,
+  bevel = 0mm,
+)
+ballastWidth = 60mm
+ballastDepth = 40mm
+ballastHeight = 12mm
+trayWall = 2mm
+trayBlank = block(
+  width = ballastWidth + 2 * trayWall,
+  height = ballastDepth + 2 * trayWall,
+  depth = ballastHeight + 0.1mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(z = coverThickness - 0.1mm, global = true)
+trayCover = union([coverBlank, trayBlank])
+ballastVoid = block(
+  width = ballastWidth,
+  height = ballastDepth,
+  depth = ballastHeight + 1mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(z = coverThickness, global = true)
+openTrayCover = subtract([trayCover], tools = [ballastVoid])
+
+screwSeed = cylinder(diameter = 3.4mm + holeAllowance, depth = coverThickness + 2mm)
+  |> translate(
+       x = -postX,
+       y = -postY,
+       z = -1mm,
+       global = true,
+     )
+screwPair = patternLinear3d(
+  screwSeed,
+  instances = 2,
+  distance = 2 * postX,
+  axis = X,
+)
+screwHoles = patternLinear3d(
+  screwPair,
+  instances = 2,
+  distance = 2 * postY,
+  axis = Y,
+)
+drilledCover = subtract([openTrayCover], tools = screwHoles)
+headSeed = cylinder(diameter = 6.4mm + holeAllowance, depth = 2.1mm)
+  |> translate(
+       x = -postX,
+       y = -postY,
+       z = -0.1mm,
+       global = true,
+     )
+headPair = patternLinear3d(
+  headSeed,
+  instances = 2,
+  distance = 2 * postX,
+  axis = X,
+)
+headRecesses = patternLinear3d(
+  headPair,
+  instances = 2,
+  distance = 2 * postY,
+  axis = Y,
+)
+fastenedCover = subtract([drilledCover], tools = headRecesses)
+padSeed = cylinder(diameter = 10mm, depth = 1.6mm)
+  |> translate(
+       x = -footPadX,
+       y = -footPadY,
+       z = -0.1mm,
+       global = true,
+     )
+padPair = patternLinear3d(
+  padSeed,
+  instances = 2,
+  distance = 2 * footPadX,
+  axis = X,
+)
+padRecesses = patternLinear3d(
+  padPair,
+  instances = 2,
+  distance = 2 * footPadY,
+  axis = Y,
+)
+paddedCover = subtract([fastenedCover], tools = padRecesses)
+rearNotch = block(
+  width = 14mm,
+  height = boxWall + 2mm,
+  depth = coverThickness + 2mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(y = boxDepth / 2 - (boxWall / 2), z = -1mm, global = true)
+bottomCover = subtract([paddedCover], tools = [rearNotch])
+  |> appearance(color = "#718096")

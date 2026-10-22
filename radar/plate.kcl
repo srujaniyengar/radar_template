@@ -1,0 +1,135 @@
+// Three-module removable sensor plate
+// Front face at local Z=0; recessed boards and raised square plug are on the back.
+@settings(defaultLengthUnit = mm, kclVersion = 3.0)
+
+import block, cylinder, wedge from "features.kcl"
+import plateWidth, plateHeight, plateThickness, pocketPitch, pocketWidth, pocketHeight, pocketDepth, canSpacing, windowDiameter, plugWidth, socketDepth, plugStandOff, bridgeTop from "dimensions.kcl"
+
+plateBlank = block(
+  width = plateWidth,
+  height = plateHeight,
+  depth = plateThickness,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+pocketSeed = block(
+  width = pocketWidth,
+  height = pocketHeight,
+  depth = pocketDepth + 0.1mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(x = -pocketPitch, z = plateThickness - pocketDepth, global = true)
+pockets = patternLinear3d(
+  pocketSeed,
+  instances = 3,
+  distance = pocketPitch,
+  axis = X,
+)
+pocketedPlate = subtract([plateBlank], tools = pockets)
+windowSeed = cylinder(diameter = windowDiameter, depth = plateThickness + 2mm)
+  |> translate(
+       x = -pocketPitch,
+       y = -canSpacing / 2,
+       z = -1mm,
+       global = true,
+     )
+windowPair = patternLinear3d(
+  windowSeed,
+  instances = 2,
+  distance = canSpacing,
+  axis = Y,
+)
+windows = patternLinear3d(
+  windowPair,
+  instances = 3,
+  distance = pocketPitch,
+  axis = X,
+)
+windowedPlate = subtract([pocketedPlate], tools = windows)
+headerOffset = pocketWidth / 2 + 1.8mm
+headerSeed = block(
+  width = 4mm,
+  height = 12mm,
+  depth = plateThickness + 2mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(x = -pocketPitch + headerOffset, z = -1mm, global = true)
+headerSlots = patternLinear3d(
+  headerSeed,
+  instances = 3,
+  distance = pocketPitch,
+  axis = X,
+)
+slottedPlate = subtract([windowedPlate], tools = headerSlots)
+
+lipOverlap = 0.5mm
+lipRun = 1.5mm
+lipCrown = 3.2mm
+rightLipSeed = wedge(width = lipRun, height = lipRun, depth = 6mm)
+  |> translate(
+       x = -pocketPitch + pocketWidth / 2 - lipOverlap,
+       y = -16mm,
+       z = lipCrown - lipRun,
+       global = true,
+     )
+rightLips = patternLinear3d(
+  rightLipSeed,
+  instances = 3,
+  distance = pocketPitch,
+  axis = X,
+)
+leftLipSeed = wedge(width = lipRun, height = lipRun, depth = 6mm)
+  |> rotate(axis = Z, angle = 180deg, global = true)
+  |> translate(
+       x = -pocketPitch - (pocketWidth / 2) + lipOverlap,
+       y = 16mm,
+       z = lipCrown - lipRun,
+       global = true,
+     )
+leftLips = patternLinear3d(
+  leftLipSeed,
+  instances = 3,
+  distance = pocketPitch,
+  axis = X,
+)
+retainedPlate = union(concat(concat([slottedPlate], items = rightLips), items = leftLips))
+
+bridgeThickness = 3mm
+bridgeLegWidth = (plateHeight - pocketHeight) / 2 - 0.5mm
+bridgeLegOffset = (plateHeight + pocketHeight) / 4
+bridgeLegSeed = block(
+  width = plugWidth,
+  height = bridgeLegWidth,
+  depth = bridgeTop - plateThickness + 0.2mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(y = -bridgeLegOffset, z = plateThickness - 0.2mm, global = true)
+bridgeLegs = patternLinear3d(
+  bridgeLegSeed,
+  instances = 2,
+  distance = 2 * bridgeLegOffset,
+  axis = Y,
+)
+bridgeBeam = block(
+  width = plugWidth,
+  height = plateHeight - 0.5mm,
+  depth = bridgeThickness,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(z = bridgeTop - bridgeThickness, global = true)
+squarePlug = block(
+  width = plugWidth,
+  height = plugWidth,
+  depth = socketDepth + plugStandOff + 0.2mm,
+  cornerRadius = 0mm,
+  bevel = 1mm,
+)
+  |> translate(z = bridgeTop - 0.2mm, global = true)
+supportedPlate = union(concat([retainedPlate], items = bridgeLegs))
+bridgedPlate = union([supportedPlate, bridgeBeam])
+plate = union([bridgedPlate, squarePlug])
+  |> appearance(color = "#3b9cbb")

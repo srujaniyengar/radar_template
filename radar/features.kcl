@@ -1,0 +1,137 @@
+// Repeated manufacturing primitives
+// Solver-constrained profiles with dimension-driven repeated features.
+@settings(defaultLengthUnit = mm, kclVersion = 3.0)
+
+export fn block(width, height, depth, cornerRadius, bevel) {
+  rectangleProfile = sketch(on = XY) {
+    bottom = line(start = [var -10mm, var -5mm], end = [var 10mm, var -5mm])
+    right = line(start = [var 10mm, var -5mm], end = [var 10mm, var 5mm])
+    top = line(start = [var 10mm, var 5mm], end = [var -10mm, var 5mm])
+    left = line(start = [var -10mm, var 5mm], end = [var -10mm, var -5mm])
+    coincident([bottom.end, right.start])
+    coincident([right.end, top.start])
+    coincident([top.end, left.start])
+    coincident([left.end, bottom.start])
+    horizontal(bottom)
+    vertical(right)
+    horizontal(top)
+    vertical(left)
+    distance([bottom.start, bottom.end]) == width
+    distance([right.start, right.end]) == height
+    coincident([
+      bottom.start,
+      [-width / 2, -height / 2]
+    ])
+  }
+  perimeter = region(
+    segments = [
+      rectangleProfile.bottom,
+      rectangleProfile.right
+    ],
+    intersectionIndex = -1,
+    direction = CCW,
+  )
+  blank = extrude(perimeter, length = depth, tagEnd = $upperCap)
+  rounded = if cornerRadius > 0mm {
+    fillet(
+      blank,
+      radius = cornerRadius,
+      edges = [
+        {
+          sideFaces = [
+            perimeter.tags.bottom,
+            perimeter.tags.right
+          ]
+        },
+        {
+          sideFaces = [
+            perimeter.tags.right,
+            perimeter.tags.top
+          ]
+        },
+        {
+          sideFaces = [
+            perimeter.tags.top,
+            perimeter.tags.left
+          ]
+        },
+        {
+          sideFaces = [
+            perimeter.tags.left,
+            perimeter.tags.bottom
+          ]
+        }
+      ],
+    )
+  } else {
+    blank
+  }
+  finished = if bevel > 0mm & cornerRadius > 0mm {
+    chamfer(
+      rounded,
+      length = bevel,
+      edges = [
+        {
+          sideFaces = [perimeter.tags.bottom, upperCap]
+        }
+      ],
+      tangentChain = true,
+    )
+  } else if bevel > 0mm {
+    chamfer(
+      rounded,
+      length = bevel,
+      edges = [
+        {
+          sideFaces = [perimeter.tags.bottom, upperCap]
+        },
+        {
+          sideFaces = [perimeter.tags.right, upperCap]
+        },
+        {
+          sideFaces = [perimeter.tags.top, upperCap]
+        },
+        {
+          sideFaces = [perimeter.tags.left, upperCap]
+        }
+      ],
+      tangentChain = false,
+    )
+  } else {
+    rounded
+  }
+  hide(rectangleProfile)
+  return finished
+}
+
+export fn cylinder(diameter, depth) {
+  boreRadius = diameter / 2
+  roundProfile = sketch(on = XY) {
+    rim = circle(start = [var 5mm, var 0mm], center = [var 0mm, var 0mm])
+    coincident([rim.center, ORIGIN])
+    radius(rim) == boreRadius
+    horizontal([rim.center, rim.start])
+  }
+  roundSolid = extrude(region(segments = [roundProfile.rim]), length = depth)
+  hide(roundProfile)
+  return roundSolid
+}
+
+export fn wedge(width, height, depth) {
+  wedgeProfile = sketch(on = XZ) {
+    slope = line(start = [var 0mm, var 2mm], end = [var 2mm, var 0mm])
+    back = line(start = [var 2mm, var 0mm], end = [var 2mm, var 2mm])
+    crown = line(start = [var 2mm, var 2mm], end = [var 0mm, var 2mm])
+    coincident([slope.end, back.start])
+    coincident([back.end, crown.start])
+    coincident([crown.end, slope.start])
+    vertical(back)
+    horizontal(crown)
+    distance([back.start, back.end]) == height
+    distance([crown.start, crown.end]) == width
+    coincident([back.start, [width, 0mm]])
+  }
+  lip = extrude(region(segments = [wedgeProfile.slope, wedgeProfile.back], intersectionIndex = -1, direction = CCW), length = depth, symmetric = true)
+  hide(wedgeProfile)
+  return lip
+}

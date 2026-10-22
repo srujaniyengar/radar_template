@@ -1,0 +1,18 @@
+// Column-orientation review of completed parts
+// Alternate review entrypoint, not additional manufactured parts; pedestal is still unvalidated.
+@settings(defaultLengthUnit = mm, kclVersion = 3.0)
+
+import "plate.kcl" as platePart
+import "hub.kcl" as hubPart
+import "bottomCover.kcl" as coverPart
+import boxHeight, footAirGap, footThickness, socketHeight, housingWidth, plugStandOff, bridgeTop from "dimensions.kcl"
+
+hubDatum = boxHeight + footAirGap
+plateDatumX = housingWidth / 2 + plugStandOff + bridgeTop
+plateDatumZ = footThickness + socketHeight
+bottomCover = coverPart
+hub = hubPart
+  |> translate(z = hubDatum, global = true)
+plate = platePart
+  |> rotate(axis = Y, angle = -90deg, global = true)
+  |> translate(x = plateDatumX, z = plateDatumZ + hubDatum, global = true)

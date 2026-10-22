@@ -1,0 +1,43 @@
+// Sensor holder driving dimensions
+// Millimetres; documented ranges are intended parameter-edit ranges, not measured fits.
+@settings(defaultLengthUnit = mm, kclVersion = 3.0)
+
+export plateWidth = 92mm
+export plateHeight = 57mm
+export plateThickness = 3mm
+export pocketPitch = 30mm
+export pocketWidth = 20.3mm
+export pocketHeight = 45.3mm
+export pocketDepth = 2mm
+export canSpacing = 26mm // Unmeasured; adjust to actual module.
+export windowDiameter = 16.4mm
+export plugWidth = 16mm // Range 14..20.
+export socketDepth = 12mm
+export plugStandOff = 20mm // Range 10..30.
+export socketClearance = 0.25mm // Per side; range 0.15..0.4.
+export socketHeight = 46mm // Above foot top; clearance must be rechecked after edits.
+export bridgeTop = 9mm
+export footDiameter = 42.5mm // Enlarged to separate cable hole and horn recess.
+export footThickness = 4mm
+export housingWidth = 26mm
+export hornRecessDiameter = 20.5mm
+export hornBoltCircle = 14mm // Unmeasured.
+export holeAllowance = 0.2mm // Added to round functional bores only.
+export boxWidth = 90mm
+export boxDepth = 70mm
+export boxHeight = 60mm
+export boxWall = 3mm
+export topThickness = 6mm
+export coverThickness = 4mm
+export servoBodyLength = 22.5mm
+export servoBodyWidth = 12mm
+export servoEarSpan = 32mm
+export servoEarThickness = 2.5mm
+export servoEarUnderside = 16mm
+export servoHolePitch = 27.5mm
+export servoShaftOffset = 5.5mm // Assumed from body centre toward +X.
+export footAirGap = 6mm // Foot bottom above pedestal top.
+export postX = 37mm
+export postY = 27mm
+export footPadX = 29mm
+export footPadY = 19mm

@@ -1,0 +1,99 @@
+// Servo pedestal shell
+// Local bottom mates to the four-millimetre cover; print with the top face down.
+@settings(defaultLengthUnit = mm, kclVersion = 3.0)
+
+import block, cylinder from "features.kcl"
+import boxWidth, boxDepth, boxHeight, boxWall, topThickness, coverThickness, servoBodyLength, servoBodyWidth, servoHolePitch, servoShaftOffset, postX, postY, holeAllowance from "dimensions.kcl"
+
+shellHeight = boxHeight - coverThickness
+outerShell = block(
+  width = boxWidth,
+  height = boxDepth,
+  depth = shellHeight,
+  cornerRadius = 6mm,
+  bevel = 1.5mm,
+)
+innerVoid = block(
+  width = boxWidth - (2 * boxWall),
+  height = boxDepth - (2 * boxWall),
+  depth = shellHeight - topThickness + 1mm,
+  cornerRadius = 3mm,
+  bevel = 0mm,
+)
+  |> translate(z = -1mm, global = true)
+postDiameter = 11mm
+postHeight = 12mm
+postSeed = cylinder(diameter = postDiameter, depth = postHeight + 2mm)
+  |> translate(
+       x = -postX,
+       y = -postY,
+       z = -2mm,
+       global = true,
+     )
+postPair = patternLinear3d(
+  postSeed,
+  instances = 2,
+  distance = 2 * postX,
+  axis = X,
+)
+posts = patternLinear3d(
+  postPair,
+  instances = 2,
+  distance = 2 * postY,
+  axis = Y,
+)
+postRelievedVoid = subtract([innerVoid], tools = posts)
+postedShell = subtract([outerShell], tools = [postRelievedVoid])
+insertSeed = cylinder(diameter = 4.2mm + holeAllowance, depth = 5.1mm)
+  |> translate(
+       x = -postX,
+       y = -postY,
+       z = -0.1mm,
+       global = true,
+     )
+insertPair = patternLinear3d(
+  insertSeed,
+  instances = 2,
+  distance = 2 * postX,
+  axis = X,
+)
+insertHoles = patternLinear3d(
+  insertPair,
+  instances = 2,
+  distance = 2 * postY,
+  axis = Y,
+)
+insertShell = subtract([postedShell], tools = insertHoles)
+
+servoSideClearance = 0.3mm
+servoOpening = block(
+  width = servoBodyLength + 2 * servoSideClearance,
+  height = servoBodyWidth + 2 * servoSideClearance,
+  depth = topThickness + 2mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(x = -servoShaftOffset, z = shellHeight - topThickness - 1mm, global = true)
+servoShell = subtract([insertShell], tools = [servoOpening])
+pilotSeed = cylinder(diameter = 1.7mm + holeAllowance, depth = 5.1mm)
+  |> translate(x = -servoShaftOffset - (servoHolePitch / 2), z = shellHeight - 5mm, global = true)
+pilots = patternLinear3d(
+  pilotSeed,
+  instances = 2,
+  distance = servoHolePitch,
+  axis = X,
+)
+pilotedShell = subtract([servoShell], tools = pilots)
+topCableHole = cylinder(diameter = 16mm, depth = topThickness + 2mm)
+  |> translate(y = 15mm, z = shellHeight - topThickness - 1mm, global = true)
+cabledShell = subtract([pilotedShell], tools = [topCableHole])
+rearNotch = block(
+  width = 14mm,
+  height = boxWall + 2mm,
+  depth = 8mm - coverThickness + 0.1mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(y = boxDepth / 2 - (boxWall / 2), z = -0.1mm, global = true)
+pedestal = subtract([cabledShell], tools = [rearNotch])
+  |> appearance(color = "#4c5669")

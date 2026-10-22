@@ -1,0 +1,13 @@
+title = "radar"
+default_file = "main.kcl"
+
+[settings.app]
+[settings.meta]
+id = "3b66440f-f89f-492d-aa2d-ac48acbb778b"
+
+[settings.modeling]
+[cloud."zoo.dev"]
+project_id = "594793d1-effc-4a8c-b8fa-d64d7e9131c3"
+
+[zookeeper."zoo.dev"]
+conversation_ids = [ "ce76470c-af92-4c99-9dc5-e8a5090106ca" ]

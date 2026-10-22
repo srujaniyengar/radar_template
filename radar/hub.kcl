@@ -1,0 +1,110 @@
+// Servo horn hub
+// Foot datum Z=0, shaft +Z, square socket opens toward +X.
+@settings(defaultLengthUnit = mm, kclVersion = 3.0)
+
+import block, cylinder from "features.kcl"
+import footDiameter, footThickness, housingWidth, socketHeight, plugWidth, socketClearance, socketDepth, hornRecessDiameter, hornBoltCircle, holeAllowance from "dimensions.kcl"
+
+socketCentre = footThickness + socketHeight
+housingTop = socketCentre + housingWidth / 2
+socketSize = plugWidth + 2 * socketClearance
+footBlank = cylinder(diameter = footDiameter, depth = footThickness)
+stemBlank = block(
+  width = housingWidth,
+  height = housingWidth,
+  depth = housingTop - footThickness + 0.2mm,
+  cornerRadius = 3mm,
+  bevel = 0mm,
+)
+  |> translate(z = footThickness - 0.2mm, global = true)
+hubBlank = union([footBlank, stemBlank])
+rearGroove = block(
+  width = 6.1mm,
+  height = 12mm,
+  depth = housingTop - footThickness + 1.1mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> translate(x = -housingWidth / 2 + 2.95mm, z = footThickness - 0.1mm, global = true)
+groovedBlank = subtract([hubBlank], tools = [rearGroove])
+hornRecess = cylinder(diameter = hornRecessDiameter, depth = 2.1mm)
+  |> translate(z = -0.1mm, global = true)
+hornSeatedHub = subtract([groovedBlank], tools = [hornRecess])
+centreAccess = cylinder(diameter = 5.5mm + holeAllowance, depth = housingTop + 2mm)
+  |> translate(z = -1mm, global = true)
+centreDrilledHub = subtract([hornSeatedHub], tools = [centreAccess])
+
+boltOffset = hornBoltCircle / (2 * sqrt(2))
+boltSeed = cylinder(diameter = 2.4mm + holeAllowance, depth = footThickness + 2mm)
+  |> translate(
+       x = -boltOffset,
+       y = -boltOffset,
+       z = -1mm,
+       global = true,
+     )
+boltPair = patternLinear3d(
+  boltSeed,
+  instances = 2,
+  distance = 2 * boltOffset,
+  axis = X,
+)
+boltHoles = patternLinear3d(
+  boltPair,
+  instances = 2,
+  distance = 2 * boltOffset,
+  axis = Y,
+)
+boltedHub = subtract([centreDrilledHub], tools = boltHoles)
+counterboreDepth = 1mm
+headAccessSeed = cylinder(diameter = 4.4mm + holeAllowance, depth = housingTop - footThickness + counterboreDepth + 1mm)
+  |> translate(
+       x = -boltOffset,
+       y = -boltOffset,
+       z = footThickness - counterboreDepth,
+       global = true,
+     )
+headAccessPair = patternLinear3d(
+  headAccessSeed,
+  instances = 2,
+  distance = 2 * boltOffset,
+  axis = X,
+)
+headAccessWells = patternLinear3d(
+  headAccessPair,
+  instances = 2,
+  distance = 2 * boltOffset,
+  axis = Y,
+)
+accessibleHub = subtract([boltedHub], tools = headAccessWells)
+
+socketTool = block(
+  width = socketSize,
+  height = socketSize,
+  depth = socketDepth + 1mm,
+  cornerRadius = 0mm,
+  bevel = 0mm,
+)
+  |> rotate(axis = Y, angle = 90deg, global = true)
+  |> translate(x = housingWidth / 2 - socketDepth, z = socketCentre, global = true)
+socketHub = subtract([accessibleHub], tools = [socketTool])
+leadInTool = block(
+  width = socketSize + 2mm,
+  height = socketSize + 2mm,
+  depth = 2mm,
+  cornerRadius = 0mm,
+  bevel = 1mm,
+)
+  |> rotate(axis = Y, angle = -90deg, global = true)
+  |> translate(x = housingWidth / 2 + 1mm, z = socketCentre, global = true)
+leadInHub = subtract([socketHub], tools = [leadInTool])
+lockInsertX = 9mm
+lockInsertTool = cylinder(diameter = 4.2mm + holeAllowance, depth = 5.1mm)
+  |> translate(x = lockInsertX, z = housingTop - 5mm, global = true)
+lockingHub = subtract([leadInHub], tools = [lockInsertTool])
+
+cableCentre = -(hornRecessDiameter / 2 + 4mm + 1.5mm)
+cableHole = cylinder(diameter = 8mm, depth = footThickness + 2mm)
+  |> translate(x = cableCentre, z = -1mm, global = true)
+cabledHub = subtract([lockingHub], tools = [cableHole])
+hub = cabledHub
+  |> appearance(color = "#e8aa48")
