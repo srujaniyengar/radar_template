@@ -19,18 +19,18 @@ stemBlank = block(
   |> translate(z = footThickness - 0.2mm, global = true)
 hubBlank = union([footBlank, stemBlank])
 rearGroove = block(
-  width = 6.1mm,
+  width = 4.1mm,
   height = 12mm,
   depth = housingTop - footThickness + 1.1mm,
   cornerRadius = 0mm,
   bevel = 0mm,
 )
-  |> translate(x = -housingWidth / 2 + 2.95mm, z = footThickness - 0.1mm, global = true)
+  |> translate(x = -housingWidth / 2 + 1.95mm, z = footThickness - 0.1mm, global = true)
 groovedBlank = subtract([hubBlank], tools = [rearGroove])
 hornRecess = cylinder(diameter = hornRecessDiameter, depth = 2.1mm)
   |> translate(z = -0.1mm, global = true)
 hornSeatedHub = subtract([groovedBlank], tools = [hornRecess])
-centreAccess = cylinder(diameter = 5.5mm + holeAllowance, depth = housingTop + 2mm)
+centreAccess = cylinder(diameter = 5.5mm + holeAllowance, depth = 3.8mm + 1mm)
   |> translate(z = -1mm, global = true)
 centreDrilledHub = subtract([hornSeatedHub], tools = [centreAccess])
 
@@ -102,9 +102,5 @@ lockInsertTool = cylinder(diameter = 4.2mm + holeAllowance, depth = 5.1mm)
   |> translate(x = lockInsertX, z = housingTop - 5mm, global = true)
 lockingHub = subtract([leadInHub], tools = [lockInsertTool])
 
-cableCentre = -(hornRecessDiameter / 2 + 4mm + 1.5mm)
-cableHole = cylinder(diameter = 8mm, depth = footThickness + 2mm)
-  |> translate(x = cableCentre, z = -1mm, global = true)
-cabledHub = subtract([lockingHub], tools = [cableHole])
-hub = cabledHub
+hub = lockingHub
   |> appearance(color = "#e8aa48")

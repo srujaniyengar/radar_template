@@ -42,8 +42,8 @@ posts = patternLinear3d(
   distance = 2 * postY,
   axis = Y,
 )
-postRelievedVoid = subtract([innerVoid], tools = posts)
-postedShell = subtract([outerShell], tools = [postRelievedVoid])
+hollowShell = subtract([outerShell], tools = [innerVoid])
+postedShell = union([hollowShell, posts])
 insertSeed = cylinder(diameter = 4.2mm + holeAllowance, depth = 5.1mm)
   |> translate(
        x = -postX,
@@ -84,9 +84,6 @@ pilots = patternLinear3d(
   axis = X,
 )
 pilotedShell = subtract([servoShell], tools = pilots)
-topCableHole = cylinder(diameter = 16mm, depth = topThickness + 2mm)
-  |> translate(y = 15mm, z = shellHeight - topThickness - 1mm, global = true)
-cabledShell = subtract([pilotedShell], tools = [topCableHole])
 rearNotch = block(
   width = 14mm,
   height = boxWall + 2mm,
@@ -95,5 +92,5 @@ rearNotch = block(
   bevel = 0mm,
 )
   |> translate(y = boxDepth / 2 - (boxWall / 2), z = -0.1mm, global = true)
-pedestal = subtract([cabledShell], tools = [rearNotch])
+pedestal = subtract([pilotedShell], tools = [rearNotch])
   |> appearance(color = "#4c5669")

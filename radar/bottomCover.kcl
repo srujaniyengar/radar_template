@@ -3,7 +3,10 @@
 @settings(defaultLengthUnit = mm, kclVersion = 3.0)
 
 import block, cylinder from "features.kcl"
-import boxWidth, boxDepth, boxWall, coverThickness, postX, postY, footPadX, footPadY, holeAllowance from "dimensions.kcl"
+import boxWidth, boxDepth, boxWall, coverThickness, postX, postY, holeAllowance from "dimensions.kcl"
+
+footPadX = 28mm
+footPadY = 29mm
 
 coverBlank = block(
   width = boxWidth,
