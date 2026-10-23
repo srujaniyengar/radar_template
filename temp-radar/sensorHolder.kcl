@@ -1,0 +1,244 @@
+// Sensor holder
+// Single part, rear-facing pockets and orthogonal horn tabs.
+@settings(kclVersion = 3.0, defaultLengthUnit = mm)
+
+import block, roundTool, rootedPrism from "profiles.kcl"
+
+// Dimensions (mm); pocketCount must be an integer from 1 to 3.
+plateLength = 92mm
+plateWidth = 57mm
+plateThickness = 3mm
+pocketPitch = 30mm
+pocketCount = 3
+canSpacing = 26mm
+windowDiameter = 16.4mm
+pocketLength = 20.3mm
+pocketWidth = 45.3mm
+pocketDepth = 2mm
+headerLength = 4mm
+headerWidth = 12mm
+headerOffset = 11.95mm
+lipRise = 1.5mm
+lipCrown = 3.2mm
+lipLength = 6mm
+lipOverlap = 0.5mm
+lipOffset = 16mm
+tabSize = 36mm
+tabThickness = 4mm
+tabCorner = 8mm
+hornDiameter = 20.5mm
+hornDepth = 2mm
+centreDiameter = 5.7mm
+boltCircle = 14mm
+boltDiameter = 2.6mm
+counterboreDiameter = 4.4mm
+counterboreDepth = 1mm
+ribWidth = 3mm
+ribHeight = 12mm
+junctionRadius = 3mm
+joinOverlap = 0.2mm
+assertIs(pocketCount >= 1 & pocketCount <= 3)
+assert(pocketCount, isEqualTo = floor(pocketCount))
+
+plateProfile = block(
+  width = plateLength,
+  height = plateWidth,
+  depth = plateThickness,
+  corner = 0mm,
+)
+tabProfile = block(
+  width = tabSize,
+  height = tabSize,
+  depth = tabThickness,
+  corner = tabCorner,
+)
+hornTool = roundTool(diameter = hornDiameter, depth = hornDepth + joinOverlap)
+  |> translate(z = tabThickness - hornDepth, global = true)
+centreTool = roundTool(diameter = centreDiameter, depth = tabThickness + 2 * joinOverlap)
+  |> translate(z = -joinOverlap, global = true)
+boltTool = roundTool(diameter = boltDiameter, depth = tabThickness + 2 * joinOverlap)
+  |> translate(
+       x = boltCircle / 2 * cos(45deg),
+       y = boltCircle / 2 * sin(45deg),
+       z = -joinOverlap,
+       global = true,
+     )
+boltTools = patternCircular3d(
+  boltTool,
+  axis = Z,
+  center = [0, 0, 0],
+  instances = 4,
+  arcDegrees = 360deg,
+)
+cbTool = roundTool(diameter = counterboreDiameter, depth = counterboreDepth + joinOverlap)
+  |> translate(
+       x = boltCircle / 2 * cos(45deg),
+       y = boltCircle / 2 * sin(45deg),
+       z = -joinOverlap,
+       global = true,
+     )
+cbTools = patternCircular3d(
+  cbTool,
+  axis = Z,
+  center = [0, 0, 0],
+  instances = 4,
+  arcDegrees = 360deg,
+)
+tabCut = subtract([tabProfile.body], tools = concat([hornTool, centreTool], items = concat(boltTools, items = cbTools)))
+tabCopy = clone(tabCut)
+tabA = rotate(
+  tabCut,
+  axis = X,
+  angle = 90deg,
+  global = true,
+)
+  |> translate(y = -plateWidth / 2, z = tabSize / 2, global = true)
+tabB = rotate(
+  tabCopy,
+  axis = X,
+  angle = 90deg,
+  global = true,
+)
+  |> rotate(axis = Z, angle = -90deg, global = true)
+  |> translate(x = -plateLength / 2, z = tabSize / 2, global = true)
+
+ribBlank = rootedPrism(
+  webWidth = ribWidth,
+  webHeight = ribHeight,
+  span = 5mm + joinOverlap,
+  blendRadius = junctionRadius,
+  overlap = joinOverlap,
+)
+ribB = clone(ribBlank)
+  |> rotate(axis = Z, angle = -90deg, global = true)
+  |> translate(x = -plateLength / 2 + (5mm - joinOverlap) / 2, z = plateThickness - joinOverlap, global = true)
+ribA = translate(
+  ribBlank,
+  y = -plateWidth / 2 + (5mm - joinOverlap) / 2,
+  z = plateThickness - joinOverlap,
+  global = true,
+)
+shoeAProfile = block(
+  width = 20mm,
+  height = 2 * joinOverlap,
+  depth = plateThickness,
+  corner = 0mm,
+)
+shoeA = translate(shoeAProfile.body, y = -plateWidth / 2, global = true)
+shoeBProfile = block(
+  width = 2 * joinOverlap,
+  height = 20mm,
+  depth = plateThickness,
+  corner = 0mm,
+)
+shoeB = translate(shoeBProfile.body, x = -plateLength / 2, global = true)
+
+pocketStart = -(pocketCount - 1) * pocketPitch / 2
+pocketProfile = block(
+  width = pocketLength,
+  height = pocketWidth,
+  depth = pocketDepth + joinOverlap,
+  corner = 0mm,
+)
+pocketTool = translate(
+  pocketProfile.body,
+  x = pocketStart,
+  z = plateThickness - pocketDepth,
+  global = true,
+)
+pocketTools = if pocketCount == 1 {
+  [pocketTool]
+} else {
+  patternLinear3d(
+    pocketTool,
+    axis = X,
+    instances = pocketCount,
+    distance = pocketPitch,
+  )
+}
+windowTool = roundTool(diameter = windowDiameter, depth = plateThickness + 2 * joinOverlap)
+  |> translate(
+       x = pocketStart,
+       y = -canSpacing / 2,
+       z = -joinOverlap,
+       global = true,
+     )
+windowPair = patternLinear3d(
+  windowTool,
+  axis = Y,
+  instances = 2,
+  distance = canSpacing,
+)
+windowTools = if pocketCount == 1 {
+  windowPair
+} else {
+  patternLinear3d(
+    windowPair,
+    axis = X,
+    instances = pocketCount,
+    distance = pocketPitch,
+  )
+}
+headerProfile = block(
+  width = headerLength,
+  height = headerWidth,
+  depth = plateThickness + 2 * joinOverlap,
+  corner = 0mm,
+)
+headerTool = translate(
+  headerProfile.body,
+  x = pocketStart + headerOffset,
+  z = -joinOverlap,
+  global = true,
+)
+headerTools = if pocketCount == 1 {
+  [headerTool]
+} else {
+  patternLinear3d(
+    headerTool,
+    axis = X,
+    instances = pocketCount,
+    distance = pocketPitch,
+  )
+}
+platePocketed = subtract([plateProfile.body], tools = pocketTools)
+plateWindowed = subtract(platePocketed, tools = windowTools)
+plateSlotted = subtract(plateWindowed, tools = headerTools)
+joinedHolder = union(concat(plateSlotted, items = concat([ribA, ribB, shoeA, shoeB], items = concat(tabA, items = tabB))))
+
+lipSketch = sketch(on = XZ) {
+  base = line(start = [var 9.65mm, var 1.7mm], end = [var 11.15mm, var 1.7mm])
+  slope = line(start = [var 11.15mm, var 1.7mm], end = [var 9.65mm, var 3.2mm])
+  nose = line(start = [var 9.65mm, var 3.2mm], end = [var 9.65mm, var 1.7mm])
+  coincident([base.end, slope.start])
+  coincident([slope.end, nose.start])
+  coincident([nose.end, base.start])
+  horizontal(base)
+  vertical(nose)
+  horizontalDistance([ORIGIN, base.start]) == pocketLength / 2 - lipOverlap
+  verticalDistance([ORIGIN, base.start]) == lipCrown - lipRise
+  horizontalDistance([base.start, base.end]) == lipRise
+  verticalDistance([nose.end, nose.start]) == lipRise
+}
+lipBlank = extrude(region(segments = [lipSketch.base, lipSketch.slope], intersectionIndex = -1, direction = CCW), length = lipLength, symmetric = true)
+lipOpposite = clone(lipBlank)
+  |> rotate(axis = Z, angle = 180deg, global = true)
+  |> translate(x = pocketStart, y = lipOffset, global = true)
+lipFirst = translate(
+  lipBlank,
+  x = pocketStart,
+  y = -lipOffset,
+  global = true,
+)
+lips = if pocketCount == 1 {
+  [lipFirst, lipOpposite]
+} else {
+  patternLinear3d(
+    [lipFirst, lipOpposite],
+    axis = X,
+    instances = pocketCount,
+    distance = pocketPitch,
+  )
+}
+hide(lipSketch)
+sensorHolder = union(concat(joinedHolder, items = lips))

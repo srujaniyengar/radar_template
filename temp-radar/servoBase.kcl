@@ -1,0 +1,127 @@
+// Servo base
+// Single part; every servo dimension below is an unmeasured guess.
+@settings(kclVersion = 3.0, defaultLengthUnit = mm)
+
+import block, roundTool, rootedPrism from "profiles.kcl"
+
+// Dimensions (mm).
+servoBodyLength = 22.5mm
+servoBodyWidth = 12mm
+servoEarSpan = 32mm
+servoEarThickness = 2.5mm
+servoEarUnderside = 16mm
+servoHolePitch = 27.5mm
+servoShaftOffset = 5.5mm
+baseLength = 100mm
+baseWidth = 70mm
+baseThickness = 5mm
+baseCorner = 6mm
+bodyClearance = 0.3mm
+locatingDepth = 2mm
+postWidth = 12mm
+postLength = 6mm
+pilotDiameter = 1.8mm
+pilotDepth = 8mm
+postFillet = 2mm
+cableWidth = 8mm
+cableDepth = 2mm
+mountHolesEnabled = true
+mountDiameter = 3.6mm
+mountPitchX = 90mm
+mountPitchY = 60mm
+joinOverlap = 0.2mm
+
+bodyCentreX = -servoShaftOffset
+pocketFloor = baseThickness - locatingDepth
+postTop = pocketFloor + servoEarUnderside
+// 0.00001 mm kernel relief avoids coincident pocket/post side faces.
+postOffset = servoBodyLength / 2 + bodyClearance + postLength / 2 + 0.00001mm
+// Ear span and thickness are reference envelope dimensions, not extra solids.
+earTop = postTop + servoEarThickness
+earLeft = bodyCentreX - (servoEarSpan / 2)
+earRight = bodyCentreX + servoEarSpan / 2
+
+baseProfile = block(
+  width = baseLength,
+  height = baseWidth,
+  depth = baseThickness,
+  corner = baseCorner,
+)
+pocketProfile = block(
+  width = servoBodyLength + 2 * bodyClearance,
+  height = servoBodyWidth + 2 * bodyClearance,
+  depth = locatingDepth + joinOverlap,
+  corner = 0mm,
+)
+pocketTool = translate(
+  pocketProfile.body,
+  x = bodyCentreX,
+  z = pocketFloor,
+  global = true,
+)
+pocketedBase = subtract([baseProfile.body], tools = [pocketTool])
+cableProfile = block(
+  width = cableWidth,
+  height = baseWidth / 2 + joinOverlap,
+  depth = cableDepth + joinOverlap,
+  corner = 0mm,
+)
+cableTool = translate(
+  cableProfile.body,
+  x = bodyCentreX,
+  y = (baseWidth / 2 + joinOverlap) / 2,
+  z = baseThickness - cableDepth,
+  global = true,
+)
+routedBase = subtract(pocketedBase, tools = [cableTool])
+
+// Integral R2 roots on the Y sides; X faces remain clear for drop-in insertion.
+postBlank = rootedPrism(
+  webWidth = postWidth,
+  webHeight = postTop - baseThickness,
+  span = postLength,
+  blendRadius = postFillet,
+  overlap = joinOverlap,
+)
+  |> rotate(axis = Z, angle = 90deg, global = true)
+  |> translate(x = bodyCentreX - postOffset, z = baseThickness - joinOverlap, global = true)
+posts = patternLinear3d(
+  postBlank,
+  axis = X,
+  instances = 2,
+  distance = 2 * postOffset,
+)
+postedBase = union(concat(routedBase, items = posts))
+pilotTool = roundTool(diameter = pilotDiameter, depth = pilotDepth + joinOverlap)
+  |> translate(x = bodyCentreX - (servoHolePitch / 2), z = postTop - pilotDepth, global = true)
+pilotTools = patternLinear3d(
+  pilotTool,
+  axis = X,
+  instances = 2,
+  distance = servoHolePitch,
+)
+locatedBase = subtract(postedBase, tools = pilotTools)
+servoBase = if mountHolesEnabled {
+  mountingTool = roundTool(diameter = mountDiameter, depth = baseThickness + 2 * joinOverlap)
+    |> translate(
+         x = -mountPitchX / 2,
+         y = -mountPitchY / 2,
+         z = -joinOverlap,
+         global = true,
+       )
+  mountingPair = patternLinear3d(
+    mountingTool,
+    axis = X,
+    instances = 2,
+    distance = mountPitchX,
+  )
+  mountingTools = patternLinear3d(
+    mountingPair,
+    axis = Y,
+    instances = 2,
+    distance = mountPitchY,
+  )
+  subtract(locatedBase, tools = mountingTools)
+} else {
+  locatedBase
+}

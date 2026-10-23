@@ -1,0 +1,10 @@
+title = "temp_radar"
+default_file = "main.kcl"
+
+[settings.app]
+[settings.meta]
+id = "e0770ee2-c072-49e2-b44a-9c5052766fc8"
+
+[settings.modeling]
+[zookeeper."zoo.dev"]
+conversation_ids = [ "62c0fe11-3a09-45ee-922a-ffcc461f0998" ]

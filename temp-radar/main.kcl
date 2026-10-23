@@ -1,0 +1,9 @@
+// Sensor holder and servo base
+// Separate parts; display offset only, all dimensions in millimetres.
+@settings(kclVersion = 3.0, defaultLengthUnit = mm)
+
+import "sensorHolder.kcl" as sensorHolder
+import "servoBase.kcl" as servoBase
+
+holderDisplay = translate(sensorHolder, x = -75, global = true)
+baseDisplay = translate(servoBase, x = 75, global = true)

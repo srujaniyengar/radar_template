@@ -1,0 +1,120 @@
+// Parametric profile helpers
+// Fully constrained repeated rectangles and round cutters.
+@settings(kclVersion = 3.0, defaultLengthUnit = mm)
+
+export fn block(width, height, depth, corner) {
+  outline = sketch(on = XY) {
+    bottom = line(start = [var -10mm, var -5mm], end = [var 10mm, var -5mm])
+    right = line(start = [var 10mm, var -5mm], end = [var 10mm, var 5mm])
+    top = line(start = [var 10mm, var 5mm], end = [var -10mm, var 5mm])
+    left = line(start = [var -10mm, var 5mm], end = [var -10mm, var -5mm])
+    coincident([bottom.end, right.start])
+    coincident([right.end, top.start])
+    coincident([top.end, left.start])
+    coincident([left.end, bottom.start])
+    horizontal(bottom)
+    vertical(right)
+    horizontal(top)
+    vertical(left)
+    horizontalDistance([ORIGIN, bottom.start]) == -width / 2
+    verticalDistance([ORIGIN, bottom.start]) == -height / 2
+    horizontalDistance([bottom.start, bottom.end]) == width
+    verticalDistance([right.start, right.end]) == height
+  }
+  boundary = region(segments = [outline.bottom, outline.right], intersectionIndex = -1, direction = CCW)
+  blank = extrude(boundary, length = depth, tagStart = $blockBottom, tagEnd = $blockTop)
+  finished = if corner > 0mm {
+    fillet(blank, radius = corner, edges = [
+      {sideFaces = [boundary.tags.bottom, boundary.tags.right]},
+      {sideFaces = [boundary.tags.right, boundary.tags.top]},
+      {sideFaces = [boundary.tags.top, boundary.tags.left]},
+      {sideFaces = [boundary.tags.left, boundary.tags.bottom]}
+    ])
+  } else { blank }
+  hide(outline)
+  return { body = finished, boundary = boundary }
+}
+
+export fn roundTool(diameter, depth) {
+  toolDiameter = diameter
+  profile = sketch(on = XY) {
+    rim = circle(start = [var 5mm, var 0mm], center = [var 0mm, var 0mm])
+    coincident([rim.center, ORIGIN])
+    radius(rim) == toolDiameter / 2
+    horizontal([rim.center, rim.start])
+  }
+  tool = extrude(region(segments = [profile.rim]), length = depth)
+  hide(profile)
+  return tool
+}
+
+export fn rootBlend(blendRadius, span, overlap) {
+  blendSketch = sketch(on = XZ) {
+    foot = line(start = [var -0.2mm, var -0.2mm], end = [var 3mm, var -0.2mm])
+    toe = line(start = [var 3mm, var -0.2mm], end = [var 3mm, var 0mm])
+    curve = arc(start = [var 3mm, var 0mm], end = [var 0mm, var 3mm], center = [var 3mm, var 3mm], direction = CW)
+    cap = line(start = [var 0mm, var 3mm], end = [var -0.2mm, var 3mm])
+    wall = line(start = [var -0.2mm, var 3mm], end = [var -0.2mm, var -0.2mm])
+    coincident([foot.end, toe.start])
+    coincident([toe.end, curve.start])
+    coincident([curve.end, cap.start])
+    coincident([cap.end, wall.start])
+    coincident([wall.end, foot.start])
+    horizontal(foot)
+    vertical(toe)
+    horizontal(cap)
+    vertical(wall)
+    horizontalDistance([ORIGIN, foot.start]) == -overlap
+    verticalDistance([ORIGIN, foot.start]) == -overlap
+    verticalDistance([toe.start, toe.end]) == overlap
+    horizontalDistance([cap.end, cap.start]) == overlap
+    vertical([curve.start, curve.center])
+    horizontal([curve.end, curve.center])
+    radius(curve) == blendRadius
+  }
+  blend = extrude(region(segments = [blendSketch.foot, blendSketch.toe], intersectionIndex = -1, direction = CCW), length = span, symmetric = true)
+  hide(blendSketch)
+  return blend
+}
+
+export fn rootedPrism(webWidth, webHeight, span, blendRadius, overlap) {
+  rootSketch = sketch(on = XZ) {
+    bottom = line(start = [var -4.5mm, var 0mm], end = [var 4.5mm, var 0mm])
+    toeRight = line(start = [var 4.5mm, var 0mm], end = [var 4.5mm, var 0.2mm])
+    arcRight = arc(start = [var 4.5mm, var 0.2mm], end = [var 1.5mm, var 3.2mm], center = [var 4.5mm, var 3.2mm], direction = CW)
+    right = line(start = [var 1.5mm, var 3.2mm], end = [var 1.5mm, var 12.2mm])
+    top = line(start = [var 1.5mm, var 12.2mm], end = [var -1.5mm, var 12.2mm])
+    left = line(start = [var -1.5mm, var 12.2mm], end = [var -1.5mm, var 3.2mm])
+    arcLeft = arc(start = [var -1.5mm, var 3.2mm], end = [var -4.5mm, var 0.2mm], center = [var -4.5mm, var 3.2mm], direction = CW)
+    toeLeft = line(start = [var -4.5mm, var 0.2mm], end = [var -4.5mm, var 0mm])
+    coincident([bottom.end, toeRight.start])
+    coincident([toeRight.end, arcRight.start])
+    coincident([arcRight.end, right.start])
+    coincident([right.end, top.start])
+    coincident([top.end, left.start])
+    coincident([left.end, arcLeft.start])
+    coincident([arcLeft.end, toeLeft.start])
+    coincident([toeLeft.end, bottom.start])
+    horizontal(bottom)
+    horizontal(top)
+    vertical(toeRight)
+    vertical(right)
+    vertical(left)
+    vertical(toeLeft)
+    horizontalDistance([ORIGIN, bottom.start]) == -webWidth / 2 - blendRadius
+    verticalDistance([ORIGIN, bottom.start]) == 0mm
+    horizontalDistance([bottom.start, bottom.end]) == webWidth + 2 * blendRadius
+    horizontalDistance([top.end, top.start]) == webWidth
+    verticalDistance([right.start, right.end]) == webHeight - blendRadius
+    verticalDistance([toeRight.start, toeRight.end]) == overlap
+    equalLength([toeRight, toeLeft])
+    vertical([arcRight.start, arcRight.center])
+    horizontal([arcRight.end, arcRight.center])
+    horizontal([arcLeft.start, arcLeft.center])
+    vertical([arcLeft.end, arcLeft.center])
+    radius(arcRight) == blendRadius
+  }
+  rootedBody = extrude(region(segments = [rootSketch.bottom, rootSketch.toeRight], intersectionIndex = -1, direction = CCW), length = span, symmetric = true)
+  hide(rootSketch)
+  return rootedBody
+}
